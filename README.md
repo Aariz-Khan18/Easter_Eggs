@@ -1,5 +1,3 @@
-# Easter_Eggs
-Galaxy Defender is a fast-paced Space Shooter built with HTML5 Canvas, CSS, and Vanilla JS. Features an auto-fire combat system, 10 levels, power-ups, a Boss fight, and mobile touch controls. Defeat the boss to find a hidden Easter Egg! 🚀
 # 🚀 Galaxy Defender
 
 A fast-paced, frontend-only Space Shooter game built entirely from scratch without any external libraries or game engines. Survive the alien waves and defeat the Level 10 Boss!
@@ -37,4 +35,3 @@ B.Tech CSE | Full-Stack Developer
 - [LinkedIn](https://www.linkedin.com/in/aarizkhan18?utm_source=share_via&utm_content=profile&utm_medium=member_android)
 - [GitHub](https://github.com/Aariz-Khan18)
 - ✉️ muhammadaarizkhansocial@gmail.com
-- 
