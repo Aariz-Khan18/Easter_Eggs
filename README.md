@@ -33,5 +33,4 @@ B.Tech CSE | Full-Stack Developer
 🔗 **Connect with me:**
 - [Portfolio](https://aariz-portfolio.onrender.com/)
 - [LinkedIn](https://www.linkedin.com/in/aarizkhan18?utm_source=share_via&utm_content=profile&utm_medium=member_android)
-- [GitHub](https://github.com/Aariz-Khan18)
 - ✉️ muhammadaarizkhansocial@gmail.com
