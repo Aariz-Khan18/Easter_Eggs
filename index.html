@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Galaxy Defender</title>
+    <style>
+        :root {
+            --primary: #00ffff;
+            --upgrade: #39ff14;
+            --danger: #ff4b2b;
+            --bg: #050505;
+            --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * { box-sizing: border-box; touch-action: manipulation; }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: white;
+            font-family: var(--font-stack);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #stats-bar {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            justify-content: space-around;
+            padding: 12px;
+            background: #0a0a0a;
+            border-bottom: 2px solid #222;
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 1.1rem;
+            z-index: 5;
+        }
+
+        #game-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            height: 70vh;
+            border-left: 2px solid #222;
+            border-right: 2px solid #222;
+            background: #000;
+        }
+
+        canvas { 
+            width: 100%; 
+            height: 100%; 
+            display: block; 
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            background: rgba(0,0,0,0.85);
+            z-index: 10;
+        }
+
+        .card {
+            background: #111;
+            padding: 25px;
+            border-radius: 12px;
+            border: 2px solid var(--primary);
+            text-align: center;
+            width: 90%;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.15);
+        }
+
+        h1 { margin: 0 0 10px 0; color: var(--primary); font-size: 1.8rem; }
+        p { line-height: 1.5; color: #ccc; margin: 10px 0; }
+        
+        .easter-egg-hint {
+            color: #ffd700;
+            font-style: italic;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-top: 15px;
+            border-top: 1px dashed #333;
+            padding-top: 15px;
+        }
+
+        .btn-main {
+            background: var(--primary);
+            color: #000;
+            border: none;
+            padding: 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            width: 100%;
+            margin-top: 20px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-main:active { transform: scale(0.95); }
+
+        #controls {
+            display: flex;
+            width: 100%;
+            max-width: 500px;
+            height: 15vh;
+            padding: 10px;
+            gap: 15px;
+            background: #0a0a0a;
+            border-top: 2px solid #222;
+        }
+
+        .dir-btn {
+            flex: 1;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid #444;
+            border-radius: 12px;
+            color: white;
+            font-size: 2rem;
+            display: flex; justify-content: center; align-items: center;
+            user-select: none;
+        }
+        .dir-btn:active { background: var(--primary); color: #000; border-color: var(--primary); }
+
+        .social-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        .social-btn {
+            background: #1a1a1a;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            padding: 10px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .social-btn:hover { background: var(--primary); color: #000; }
+    </style>
+</head>
+<body>
+
+<div id="stats-bar">
+    <span>LVL: <span id="lvl">1</span></span>
+    <span>SCORE: <span id="score">0</span></span>
+    <span>LIVES: <span id="lives">5</span></span>
+</div>
+
+<div id="game-wrapper">
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="ui-overlay" class="overlay">
+        <div id="start-card" class="card">
+            <h1>GALAXY DEFENDER</h1>
+            <p class="easter-egg-hint">🥚 You found an Easter egg...<br>Win the game for a special reward!</p>
+            <button class="btn-main" onclick="startGame()">START MISSION</button>
+        </div>
+
+        <div id="game-over-card" class="card" style="display:none;">
+            <h1 style="color:var(--danger)">MISSION FAILED</h1>
+            <p id="final-stats"></p>
+            <button class="btn-main" onclick="location.reload()">RETRY</button>
+        </div>
+
+        <div id="premium-card" class="card" style="display:none;">
+            <h1>🏆 VICTORY!</h1>
+            <p id="egg-text">You defeated the Boss!<br><br><span style="color: yellow; font-style: italic;">But this is premium 😎<br>Pay ₹1 to continue 😂</span></p>
+            <button class="btn-main" id="pay-btn" onclick="handleFakePay()">Pay ₹1</button>
+            <button class="btn-main" id="restart-btn" style="display:none;" onclick="location.reload()">RESTART</button>
+        </div>
+    </div>
+</div>
+
+<div id="controls">
+    <div class="dir-btn" id="left-btn">◀</div>
+    <div class="dir-btn" id="right-btn">▶</div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 500; canvas.height = 700;
+
+    let score = 0, level = 1, lives = 5, frameCount = 0;
+    let gameActive = false;
+    let enemies = [], bullets = [], particles = [], powerups = [], stars = [];
+    let keys = { left: false, right: false };
+    let upgradeLevel = 0; 
+
+    const ship = { x: 230, y: 620, w: 40, h: 40, speed: 10 };
+
+    for(let i=0; i<80; i++) {
+        stars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2,
+            speed: Math.random() * 2 + 0.5
+        });
+    }
+
+    window.addEventListener('keydown', e => {
+        if(e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
+        if(e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
+    });
+    window.addEventListener('keyup', e => {
+        if(e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
+        if(e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
+    });
+
+    const bindTouch = (id, key) => {
+        const btn = document.getElementById(id);
+        btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
+        btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
+    };
+    bindTouch('left-btn', 'left');
+    bindTouch('right-btn', 'right');
+
+    class Enemy {
+        constructor(boss = false) {
+            this.boss = boss;
+            this.w = boss ? 120 : 35;
+            this.h = boss ? 80 : 35;
+            this.x = Math.random() * (canvas.width - this.w);
+            this.y = -this.h;
+            this.speed = boss ? 0.4 : 1.0 + (level * 0.15);
+            this.hp = boss ? 40 : 1; 
+            this.color = boss ? '#ff0055' : `hsl(${level * 40}, 80%, 60%)`;
+        }
+        draw() {
+            ctx.fillStyle = this.color;
+            ctx.shadowBlur = this.boss ? 15 : 5;
+            ctx.shadowColor = this.color;
+            ctx.fillRect(this.x, this.y, this.w, this.h);
+            ctx.shadowBlur = 0;
+        }
+        update() {
+            this.y += this.speed;
+            if(level >= 4 || this.boss) this.x += Math.sin(this.y / 50) * (level * 0.3);
+            if(this.x < 0) this.x = 0;
+            if(this.x > canvas.width - this.w) this.x = canvas.width - this.w;
+        }
+    }
+
+    class PowerUp {
+        constructor(x, y, type) {
+            this.x = x; this.y = y; this.w = 25; this.h = 25;
+            this.type = type; 
+            this.speed = 2.0;
+        }
+        draw() {
+            ctx.fillStyle = this.type === 'U' ? '#39ff14' : '#ff4b2b';
+            ctx.fillRect(this.x, this.y, this.w, this.h);
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText(this.type, this.x+6, this.y+19);
+        }
+        update() { this.y += this.speed; }
+    }
+
+    function createExplosion(x, y, color) {
+        for(let i=0; i<8; i++) { particles.push({x, y, sx: Math.random()*5-2.5, sy: Math.random()*5-2.5, life: 1, color}); }
+    }
+
+    function drawStars() {
+        ctx.fillStyle = '#fff';
+        stars.forEach(s => {
+            ctx.globalAlpha = s.size / 2;
+            ctx.fillRect(s.x, s.y, s.size, s.size);
+            s.y += s.speed + (level * 0.1); 
+            if(s.y > canvas.height) { s.y = 0; s.x = Math.random() * canvas.width; }
+        });
+        ctx.globalAlpha = 1;
+    }
+
+    function startGame() {
+        document.getElementById('ui-overlay').style.display = 'none';
+        gameActive = true;
+        requestAnimationFrame(gameLoop);
+    }
+
+    function gameLoop() {
+        if(!gameActive) return;
+        ctx.clearRect(0,0, canvas.width, canvas.height);
+        
+        drawStars();
+
+        let fireRate = upgradeLevel > 0 ? 5 : 10;
+        if(frameCount % fireRate === 0) {
+            bullets.push({x: ship.x + 18, y: ship.y, w:5, h:18});
+            if(upgradeLevel >= 2) {
+                bullets.push({x: ship.x, y: ship.y + 10, w:5, h:15, angle: -0.15});
+                bullets.push({x: ship.x + 36, y: ship.y + 10, w:5, h:15, angle: 0.15});
+            }
+        }
+
+        if(keys.left && ship.x > 0) ship.x -= ship.speed;
+        if(keys.right && ship.x < canvas.width - ship.w) ship.x += ship.speed;
+        
+        ctx.fillStyle = '#00ffff';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#00ffff';
+        ctx.fillRect(ship.x, ship.y, ship.w, ship.h);
+        ctx.shadowBlur = 0;
+
+        bullets.forEach((b, i) => {
+            b.y -= 12;
+            if(b.angle) b.x += b.angle * 6;
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(b.x, b.y, b.w, b.h);
+            if(b.y < 0) bullets.splice(i, 1);
+        });
+
+        powerups.forEach((p, i) => {
+            p.update(); p.draw();
+            if(p.x < ship.x + ship.w && p.x + p.w > ship.x && p.y < ship.y + ship.h && p.y + p.h > ship.y) {
+                if(p.type === 'U') upgradeLevel = Math.min(upgradeLevel + 1, 2);
+                else lives = Math.min(lives + 1, 8);
+                powerups.splice(i, 1);
+            }
+        });
+
+        if(frameCount % Math.max(30, 70 - level*3) === 0 && level <= 10) {
+            let isBoss = (level === 10 && score >= 1500 && !enemies.some(e => e.boss));
+            if(!isBoss || (isBoss && !enemies.some(e => e.boss))) enemies.push(new Enemy(isBoss));
+        }
+
+        enemies.forEach((e, ei) => {
+            e.update(); e.draw();
+            
+            bullets.forEach((b, bi) => {
+                if(b.x < e.x + e.w && b.x + b.w > e.x && b.y < e.y + e.h && b.y + b.h > e.y) {
+                    e.hp--; bullets.splice(bi, 1);
+                    createExplosion(b.x, b.y, '#fff'); 
+                    if(e.hp <= 0) {
+                        score += e.boss ? 1500 : 50;
+                        if(Math.random() < 0.3 && !e.boss) powerups.push(new PowerUp(e.x, e.y, Math.random() < 0.6 ? 'U' : 'H'));
+                        createExplosion(e.x + e.w/2, e.y + e.h/2, e.color); 
+                        enemies.splice(ei, 1);
+                        if(e.boss) handleWin();
+                    }
+                }
+            });
+
+            if((ship.x < e.x + e.w && ship.x + ship.w > e.x && ship.y < e.y + e.h && ship.y + ship.h > e.y) || e.y > canvas.height) {
+                enemies.splice(ei, 1);
+                lives--;
+                upgradeLevel = Math.max(0, upgradeLevel - 1); 
+                createExplosion(ship.x + 20, ship.y + 20, '#00ffff');
+                if(lives <= 0) handleGameOver();
+            }
+        });
+
+        particles.forEach((p, i) => {
+            p.x += p.sx; p.y += p.sy; p.life -= 0.03;
+            ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, 4, 4);
+            if(p.life <= 0) particles.splice(i, 1);
+        });
+        ctx.globalAlpha = 1;
+
+        if(score > level * 250 && level < 10) level++;
+        
+        document.getElementById('lvl').innerText = level;
+        document.getElementById('score').innerText = score;
+        document.getElementById('lives').innerText = lives;
+        
+        frameCount++;
+        requestAnimationFrame(gameLoop);
+    }
+
+    function handleGameOver() { 
+        gameActive = false; 
+        document.getElementById('ui-overlay').style.display = 'flex'; 
+        document.getElementById('start-card').style.display = 'none'; 
+        document.getElementById('game-over-card').style.display = 'block'; 
+        document.getElementById('final-stats').innerText = `Final Score: ${score} | Level Reached: ${level}`;
+    }
+    
+    function handleWin() { 
+        gameActive = false; 
+        document.getElementById('ui-overlay').style.display = 'flex'; 
+        document.getElementById('start-card').style.display = 'none'; 
+        document.getElementById('premium-card').style.display = 'block'; 
+    }
+    
+    function handleFakePay() { 
+        document.getElementById('egg-text').innerHTML = `
+            😂 Just kidding! You're awesome, Sir.<br>
+            Thanks for playing! 🚀<br>
+            <div class="social-grid">
+                <a href="https://aariz-portfolio.onrender.com/" target="_blank" class="social-btn">🌐 Portfolio</a>
+                <a href="mailto:muhammadaarizkhansocial@gmail.com" class="social-btn">✉️ Email Me</a>
+                <a href="https://www.linkedin.com/in/aarizkhan18?utm_source=share_via&utm_content=profile&utm_medium=member_android" target="_blank" class="social-btn">💼 LinkedIn</a>
+                <a href="https://github.com/Aariz-Khan18" target="_blank" class="social-btn">💻 GitHub</a>
+            </div>
+        `; 
+        document.getElementById('pay-btn').style.display = 'none'; 
+        document.getElementById('restart-btn').style.display = 'block'; 
+    }
+</script>
+</body>
+</html>
